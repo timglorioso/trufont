@@ -1,7 +1,6 @@
-from PyQt5.QtCore import QSize, pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QSize
 from PyQt5.QtGui import QColor, QKeySequence, QPainter
 from PyQt5.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
-
 from trufont.controls.pathButton import PathButton
 
 
@@ -9,7 +8,6 @@ class ToolBar(QWidget):
     """
     TODO: allow all orientations
     """
-
     currentToolChanged = pyqtSignal(object)
 
     def __init__(self, parent=None):
@@ -63,12 +61,15 @@ class ToolBar(QWidget):
                 color = self._selectedColor
             else:
                 color = self._color
-            btn.setDrawingCommands([QSize(28, 28), [tool.icon, "f", color]])
+            btn.setDrawingCommands([
+                QSize(28, 28),
+                [tool.icon, 'f', color],
+            ])
             btn.setIsDownColor(QColor())
             btn.setIsFlipped(True)
             text = tool.name
             if tool.shortcut is not None:
-                text = f"{text} ({tool.shortcut})"
+                text = "{} ({})".format(text, tool.shortcut)
                 btn.setShortcut(QKeySequence(tool.shortcut))
             btn.setToolTip(text)
             btn.clicked.connect(self._buttonClicked)

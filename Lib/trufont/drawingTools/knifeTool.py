@@ -1,9 +1,7 @@
-from collections import OrderedDict
-
 from PyQt5.QtCore import QLineF, QPointF, Qt
 from PyQt5.QtGui import QPainterPath
 from PyQt5.QtWidgets import QApplication
-
+from collections import OrderedDict
 from trufont.drawingTools.baseTool import BaseTool
 from trufont.tools import bezierMath, drawing
 
@@ -53,34 +51,22 @@ class KnifeTool(BaseTool):
                 if len(seg) == 3:
                     if seg[-1].segmentType == "qcurve":
                         i = bezierMath.qcurveIntersections(
-                            line.x1(), line.y1(), line.x2(), line.y2(), prev, *seg
-                        )
+                            line.x1(), line.y1(), line.x2(), line.y2(),
+                            prev, *seg)
                     else:
                         i = bezierMath.curveIntersections(
-                            line.x1(),
-                            line.y1(),
-                            line.x2(),
-                            line.y2(),
-                            prev,
-                            seg[0],
-                            seg[1],
-                            seg[2],
-                        )
+                            line.x1(), line.y1(), line.x2(), line.y2(),
+                            prev, seg[0], seg[1], seg[2])
                     for pt in i:
-                        self._appendIntersection(contour, index, pt)
+                        self._appendIntersection(
+                            contour, index, pt)
                 elif len(seg) == 1:
                     pt = bezierMath.lineIntersection(
-                        prev.x,
-                        prev.y,
-                        seg[0].x,
-                        seg[0].y,
-                        line.x1(),
-                        line.y1(),
-                        line.x2(),
-                        line.y2(),
-                    )
+                        prev.x, prev.y, seg[0].x, seg[0].y,
+                        line.x1(), line.y1(), line.x2(), line.y2())
                     if pt is not None:
-                        self._appendIntersection(contour, index, pt)
+                        self._appendIntersection(
+                            contour, index, pt)
 
     # events
 
@@ -119,12 +105,10 @@ class KnifeTool(BaseTool):
         if not self._cachedIntersections:
             return
         self._glyph.beginUndoGroup()
-        cutContours = (
-            not event.modifiers() & Qt.AltModifier
-            and len(self._cachedIntersections) > 1
-        )
+        cutContours = not event.modifiers() & Qt.AltModifier and \
+            len(self._cachedIntersections) > 1
         if cutContours:
-            oldPts = {pt for contour in self._glyph for pt in contour}
+            oldPts = set(pt for contour in self._glyph for pt in contour)
             path = self._glyph.getRepresentation("defconQt.QPainterPath")
         # reverse so as to not invalidate our cached segment indexes
         for loc, ts in reversed(list(self._cachedIntersections.items())):
@@ -136,9 +120,8 @@ class KnifeTool(BaseTool):
                 prev = t
         # TODO: optimize
         if cutContours:
-            newPts = {
-                pt for contour in self._glyph for pt in contour if pt.segmentType
-            } - oldPts
+            newPts = set(pt for contour in self._glyph for pt in contour
+                         if pt.segmentType) - oldPts
             del oldPts
 
             distances = dict()
@@ -147,7 +130,8 @@ class KnifeTool(BaseTool):
                 distances[d] = point
             del newPts
 
-            sortedPts = [distances[dist] for dist in sorted(distances.keys())]
+            sortedPts = [
+                distances[dist] for dist in sorted(distances.keys())]
             del distances
 
             # group points by belonging to contour "black area"
@@ -157,7 +141,7 @@ class KnifeTool(BaseTool):
                 stack = []
             for pt, nextPt in zip(sortedPts, sortedPts[1:]):
                 qPt = QPointF(pt.x, pt.y)
-                qHalf = qPt + 0.5 * (QPointF(nextPt.x, nextPt.y) - qPt)
+                qHalf = qPt + .5 * (QPointF(nextPt.x, nextPt.y) - qPt)
                 if path.contains(qHalf):
                     if stack is not None:
                         stack.append(pt)
@@ -196,12 +180,12 @@ class KnifeTool(BaseTool):
                     pen.addPoint((pt.x, pt.y), segmentType, smooth)
                     if pt in siblings and not didJump:
                         i = siblings.index(pt)
-                        otherPt = siblings[i + 1 - 2 * (i % 2)]
+                        otherPt = siblings[i+1-2*(i % 2)]
                         # TODO: optimize-out this lookup
                         for c in self._glyph:
                             try:
                                 index = c.index(otherPt)
-                            except Exception:
+                            except:
                                 pass
                             else:
                                 contour = c
@@ -210,7 +194,6 @@ class KnifeTool(BaseTool):
                         continue
                     didJump = False
                     index += 1
-
             visited = set()
             for contour in self._glyph:
                 for index, pt in enumerate(contour):
@@ -236,7 +219,8 @@ class KnifeTool(BaseTool):
             pen = painter.pen()
             pen.setWidth(0)
             painter.setPen(pen)
-            drawing.drawLine(painter, line.x1(), line.y1(), line.x2(), line.y2())
+            drawing.drawLine(
+                painter, line.x1(), line.y1(), line.x2(), line.y2())
             if self._knifePts is not None:
                 scale = widget.inverseScale()
                 dotSize = 5 * scale

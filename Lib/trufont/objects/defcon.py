@@ -1,27 +1,15 @@
-import math
-import types
-
-import fontTools
 from booleanOperations import union
 from defcon import (
-    Anchor,
-    Component,
-    Contour,
-    Font,
-    Glyph,
-    Groups,
-    Guideline,
-    Image,
-    Kerning,
-    Layer,
-    Point,
-)
+    Font, Layer, Glyph, Groups, Kerning, Contour, Point, Anchor, Component,
+    Guideline, Image)
 from fontTools.misc.transform import Identity
 from PyQt5.QtWidgets import QApplication
-from ufo2ft import compileOTF, compileTTF
-
 from trufont.objects import settings
 from trufont.objects.undoManager import UndoManager
+from ufo2ft import compileOTF, compileTTF
+import fontTools
+import math
+import types
 
 _shaper = True
 try:
@@ -36,6 +24,7 @@ except ImportError:
 
 
 class TFont(Font):
+
     def __init__(self, *args, **kwargs):
         # TODO: maybe subclass all objects into our own for caller stability
         attrs = (
@@ -57,9 +46,8 @@ class TFont(Font):
         self._engine = None
 
     def __repr__(self):
-        return "<{} {} {}>".format(
-            self.__class__.__name__, self.info.familyName, self.info.styleName
-        )
+        return "<%s %s %s>" % (
+            self.__class__.__name__, self.info.familyName, self.info.styleName)
 
     @property
     def binaryPath(self):
@@ -104,10 +92,12 @@ class TFont(Font):
 
     def extract(self, path):
         import extractor
-
         fileFormat = extractor.extractFormat(path)
         app = QApplication.instance()
-        data = dict(font=self, format=fileFormat)
+        data = dict(
+            font=self,
+            format=fileFormat,
+        )
         app.postNotification("fontWillExtract", data)
         # don't bring on UndoManager just yet
         func = self.newGlyph
@@ -122,17 +112,16 @@ class TFont(Font):
         self.dirty = False
         self._binaryPath = path
 
-    def save(
-        self,
-        path=None,
-        formatVersion=None,
-        removeUnreferencedImages=False,
-        progressBar=None,
-    ):
+    def save(self, path=None, formatVersion=None,
+             removeUnreferencedImages=False, progressBar=None):
         app = QApplication.instance()
-        data = dict(font=self, path=path or self.path)
+        data = dict(
+            font=self,
+            path=path or self.path,
+        )
         app.postNotification("fontWillSave", data)
-        super().save(path, formatVersion, removeUnreferencedImages, progressBar)
+        super().save(
+            path, formatVersion, removeUnreferencedImages, progressBar)
         app.postNotification("fontSaved", data)
 
     def export(self, path, format="otf", compression=None, **kwargs):
@@ -145,29 +134,25 @@ class TFont(Font):
         if compression is not None:
             invalid = compression - {"none", "woff", "woff2"}
             if invalid:
-                raise ValueError(f"unknown compression format: {invalid}")
+                raise ValueError(
+                    "unknown compression format: {}".format(invalid))
         # info attrs
         missingAttrs = []
-        for attr in (
-            "familyName",
-            "styleName",
-            "unitsPerEm",
-            "ascender",
-            "descender",
-            "xHeight",
-            "capHeight",
-        ):
+        for attr in ("familyName", "styleName", "unitsPerEm", "ascender",
+                     "descender", "xHeight", "capHeight"):
             if getattr(self.info, attr) is None:
                 missingAttrs.append(attr)
         if missingAttrs:
-            raise ValueError(
-                "font info attributes required for export are "
-                "missing: {}".format(" ".join(missingAttrs))
-            )
+            raise ValueError("font info attributes required for export are "
+                             "missing: {}".format(" ".join(missingAttrs)))
         # go ahead
         app = QApplication.instance()
         data = dict(
-            font=self, path=path, format=format, compression=compression, kwargs=kwargs
+            font=self,
+            path=path,
+            format=format,
+            compression=compression,
+            kwargs=kwargs,
         )
         app.postNotification("fontWillExport", data)
         otf = func(self, **kwargs)
@@ -178,7 +163,7 @@ class TFont(Font):
                 if header == "none":
                     continue
                 otf.flavor = header
-                otf.save(f"{path}.{header}")
+                otf.save("{}.{}".format(path, header))
         app.postNotification("fontExported", data)
 
     # sort descriptor
@@ -199,25 +184,17 @@ class TFont(Font):
                 del self.lib["com.typesupply.defcon.sortDescriptor"]
         else:
             self.lib["com.typesupply.defcon.sortDescriptor"] = value
-        self.postNotification(
-            "Font.SortDescriptorChanged", data=dict(oldValue=oldValue, newValue=value)
-        )
+        self.postNotification("Font.SortDescriptorChanged",
+                              data=dict(oldValue=oldValue, newValue=value))
 
-    sortDescriptor = property(
-        _get_sortDescriptor, _set_sortDescriptor, doc="The defcon sort descriptor."
-    )
+    sortDescriptor = property(_get_sortDescriptor, _set_sortDescriptor,
+                              doc="The defcon sort descriptor.")
 
 
 class TLayer(Layer):
-    def get(
-        self,
-        name,
-        override=False,
-        addUnicode=True,
-        asTemplate=False,
-        markColor=None,
-        width=600,
-    ):
+
+    def get(self, name, override=False, addUnicode=True, asTemplate=False,
+            markColor=None, width=600):
         if not override:
             if name in self:
                 # TODO: return the glyph here (change dependant code)
@@ -279,14 +256,14 @@ class TLayer(Layer):
 
 
 class TGlyph(Glyph):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._template = False
 
     def __repr__(self):
-        return "<{} {} ({})>".format(
-            self.__class__.__name__, self.name, self.layer.name
-        )
+        return "<%s %s (%s)>" % (
+            self.__class__.__name__, self.name, self.layer.name)
 
     def beginUndoGroup(self, text=None):
         self._undoManager.beginUndoGroup(text)
@@ -301,15 +278,14 @@ class TGlyph(Glyph):
             return
         super().beginSelfAnchorNotificationObservation(anchor)
         anchor.addObserver(
-            observer=self,
-            methodName="_selectionChanged",
-            notification="Anchor.SelectionChanged",
-        )
+            observer=self, methodName="_selectionChanged",
+            notification="Anchor.SelectionChanged")
 
     def endSelfAnchorNotificationObservation(self, anchor):
         if anchor.dispatcher is None:
             return
-        anchor.removeObserver(observer=self, notification="Anchor.SelectionChanged")
+        anchor.removeObserver(
+            observer=self, notification="Anchor.SelectionChanged")
         super().endSelfAnchorNotificationObservation(anchor)
 
     # observe component selection
@@ -319,17 +295,14 @@ class TGlyph(Glyph):
             return
         super().beginSelfComponentNotificationObservation(component)
         component.addObserver(
-            observer=self,
-            methodName="_selectionChanged",
-            notification="Component.SelectionChanged",
-        )
+            observer=self, methodName="_selectionChanged",
+            notification="Component.SelectionChanged")
 
     def endSelfComponentNotificationObservation(self, component):
         if component.dispatcher is None:
             return
         component.removeObserver(
-            observer=self, notification="Component.SelectionChanged"
-        )
+            observer=self, notification="Component.SelectionChanged")
         super().endSelfComponentNotificationObservation(component)
 
     # observe contours selection
@@ -344,15 +317,14 @@ class TGlyph(Glyph):
             return
         super().beginSelfContourNotificationObservation(contour)
         contour.addObserver(
-            observer=self,
-            methodName="_selectionChanged",
-            notification="Contour.SelectionChanged",
-        )
+            observer=self, methodName="_selectionChanged",
+            notification="Contour.SelectionChanged")
 
     def endSelfContourNotificationObservation(self, contour):
         if contour.dispatcher is None:
             return
-        contour.removeObserver(observer=self, notification="Contour.SelectionChanged")
+        contour.removeObserver(
+            observer=self, notification="Contour.SelectionChanged")
         super().endSelfContourNotificationObservation(contour)
 
     def _selectionChanged(self, notification):
@@ -371,12 +343,9 @@ class TGlyph(Glyph):
             contour.selected = value
 
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="The selected state of the contour. "
+        _get_selected, _set_selected, doc="The selected state of the contour. "
         "Selected state corresponds to all children points being selected."
-        "Set selected state to select or unselect all points in the glyph.",
-    )
+        "Set selected state to select or unselect all points in the glyph.")
 
     def _get_selection(self):
         selection = set()
@@ -390,11 +359,8 @@ class TGlyph(Glyph):
         for contour in self:
             contour.selection = selection
 
-    selection = property(
-        _get_selection,
-        _set_selection,
-        doc="A list of children points that are selected.",
-    )
+    selection = property(_get_selection, _set_selection,
+                         doc="A list of children points that are selected.")
 
     def _get_template(self):
         return self._template
@@ -403,10 +369,8 @@ class TGlyph(Glyph):
         self._template = value
 
     template = property(
-        _get_template,
-        _set_template,
-        doc="A boolean indicating whether the glyph is a template glyph.",
-    )
+        _get_template, _set_template,
+        doc="A boolean indicating whether the glyph is a template glyph.")
 
     def _get_side1KerningGroup(self):
         font = self.font
@@ -416,8 +380,8 @@ class TGlyph(Glyph):
         return groups.side1GroupForGlyphName(self.name)
 
     side1KerningGroup = property(
-        _get_side1KerningGroup, doc="The left side kerning group of the glyph."
-    )
+        _get_side1KerningGroup,
+        doc="The left side kerning group of the glyph.")
 
     def _get_side2KerningGroup(self):
         font = self.font
@@ -427,8 +391,8 @@ class TGlyph(Glyph):
         return groups.side2GroupForGlyphName(self.name)
 
     side2KerningGroup = property(
-        _get_side2KerningGroup, doc="The right side kerning group of the glyph."
-    )
+        _get_side2KerningGroup,
+        doc="The right side kerning group of the glyph.")
 
     def autoUnicodes(self):
         app = QApplication.instance()
@@ -440,17 +404,11 @@ class TGlyph(Glyph):
         name = self.name
         if name in GL2UV:
             uni = GL2UV[name]
-        elif (
-            name.startswith("uni")
-            and len(name) == 7
-            and all(c in hexes for c in name[3:])
-        ):
+        elif (name.startswith("uni") and len(name) == 7 and
+              all(c in hexes for c in name[3:])):
             uni = int(name[3:], 16)
-        elif (
-            name.startswith("u")
-            and len(name) in (5, 7)
-            and all(c in hexes for c in name[1:])
-        ):
+        elif (name.startswith("u") and len(name) in (5, 7) and
+              all(c in hexes for c in name[1:])):
             uni = int(name[1:], 16)
         else:
             return
@@ -544,6 +502,7 @@ class TGlyph(Glyph):
 
 
 class TKerning(Kerning):
+
     def find(self, firstGlyph, secondGlyph):
         first = firstGlyph.name
         second = secondGlyph.name
@@ -554,7 +513,7 @@ class TKerning(Kerning):
             (first, second),
             (first, secondGroup),
             (firstGroup, second),
-            (firstGroup, secondGroup),
+            (firstGroup, secondGroup)
         ]
         # look up the pairs and return any matches
         for pair in pairs:
@@ -571,7 +530,7 @@ class TKerning(Kerning):
             (first, second),
             (first, secondGroup),
             (firstGroup, second),
-            (firstGroup, secondGroup),
+            (firstGroup, secondGroup)
         ]
         for pair in pairs:
             if pair in self:
@@ -581,6 +540,7 @@ class TKerning(Kerning):
 
 
 class TGroups(Groups):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -645,6 +605,7 @@ class TGroups(Groups):
 
 
 class TContour(Contour):
+
     def __init__(self, *args, **kwargs):
         if "pointClass" not in kwargs:
             kwargs["pointClass"] = TPoint
@@ -662,11 +623,8 @@ class TContour(Contour):
         self.postNotification(notification="Contour.SelectionChanged")
 
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="The selected state of the contour. "
-        "Selected state corresponds to all children points being selected.",
-    )
+        _get_selected, _set_selected, doc="The selected state of the contour. "
+        "Selected state corresponds to all children points being selected.")
 
     def _get_selection(self):
         selection = set()
@@ -682,11 +640,8 @@ class TContour(Contour):
             point.selected = point in selection
         self.postNotification(notification="Contour.SelectionChanged")
 
-    selection = property(
-        _get_selection,
-        _set_selection,
-        doc="A list of children points that are selected.",
-    )
+    selection = property(_get_selection, _set_selection,
+                         doc="A list of children points that are selected.")
 
     def drawPoints(self, pointPen):
         """
@@ -694,13 +649,10 @@ class TContour(Contour):
         """
         pointPen.beginPath()
         for point in self._points:
-            pointPen.addPoint(
-                (point.x, point.y),
-                segmentType=point.segmentType,
-                smooth=point.smooth,
-                name=point.name,
-                selected=point.selected,
-            )
+            pointPen.addPoint((point.x, point.y),
+                              segmentType=point.segmentType,
+                              smooth=point.smooth, name=point.name,
+                              selected=point.selected)
         pointPen.endPath()
 
     def getPoint(self, index):
@@ -727,6 +679,7 @@ class TContour(Contour):
 
 
 class TAnchor(Anchor):
+
     def __init__(self, *args, **kwargs):
         self._selected = False
         super().__init__(*args, **kwargs)
@@ -746,10 +699,8 @@ class TAnchor(Anchor):
 
     # TODO: add to repr
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="A boolean indicating the selected state of the anchor.",
-    )
+        _get_selected, _set_selected,
+        doc="A boolean indicating the selected state of the anchor.")
 
     def scale(self, pt, center=(0, 0)):
         dx, dy = center
@@ -768,6 +719,7 @@ class TAnchor(Anchor):
 
 
 class TComponent(Component):
+
     def __init__(self, *args, **kwargs):
         self._selected = False
         super().__init__(*args, **kwargs)
@@ -782,10 +734,8 @@ class TComponent(Component):
         self.postNotification(notification="Component.SelectionChanged")
 
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="A boolean indicating the selected state of the component.",
-    )
+        _get_selected, _set_selected,
+        doc="A boolean indicating the selected state of the component.")
 
     def scale(self, pt, center=(0, 0)):
         dx, dy = center
@@ -799,11 +749,13 @@ class TComponent(Component):
         self.transformation = tuple(matrix.transform(self.transformation))
 
     def snap(self, base):
-        xScale, xyScale, yxScale, yScale, xOffset, yOffset = self._transformation
+        xScale, xyScale, yxScale, yScale, xOffset, yOffset = \
+            self._transformation
         xOffset = _snap(xOffset, base)
         yOffset = _snap(yOffset, base)
         # TODO: should scale be snapped too?
-        self.transformation = (xScale, xyScale, yxScale, yScale, xOffset, yOffset)
+        self.transformation = (
+            xScale, xyScale, yxScale, yScale, xOffset, yOffset)
 
 
 class TPoint(Point):
@@ -820,13 +772,12 @@ class TPoint(Point):
         self._selected = value
 
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="A boolean indicating the selected state of the point.",
-    )
+        _get_selected, _set_selected,
+        doc="A boolean indicating the selected state of the point.")
 
 
 class TGuideline(Guideline):
+
     def __init__(self, *args, **kwargs):
         self._selected = False
         super().__init__(*args, **kwargs)
@@ -846,10 +797,8 @@ class TGuideline(Guideline):
 
     # TODO: add to repr
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="A boolean indicating the selected state of the guideline.",
-    )
+        _get_selected, _set_selected,
+        doc="A boolean indicating the selected state of the guideline.")
 
     def scale(self, pt, center=(0, 0)):
         dx, dy = center
@@ -868,6 +817,7 @@ class TGuideline(Guideline):
 
 
 class TImage(Image):
+
     def __init__(self, *args, **kwargs):
         self._selected = False
         super().__init__(*args, **kwargs)
@@ -886,10 +836,8 @@ class TImage(Image):
         self.postNotification(notification="Image.SelectionChanged")
 
     selected = property(
-        _get_selected,
-        _set_selected,
-        doc="A boolean indicating the selected state of the anchor.",
-    )
+        _get_selected, _set_selected,
+        doc="A boolean indicating the selected state of the anchor.")
 
 
 def _snap(x, base=5):

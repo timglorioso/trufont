@@ -1,10 +1,8 @@
-import weakref
-
 from defcon.objects.base import BaseObject
+from defconQt.controls.glyphContextView import GlyphRecord
 from fontTools.ttLib import TTFont
 from ufo2ft.featureCompiler import FeatureCompiler
-
-from defconQt.controls.glyphContextView import GlyphRecord
+import weakref
 
 try:
     from harfbuzz import HARFBUZZ as HB
@@ -34,17 +32,16 @@ def _layoutEngineOTLTablesRepresentationFactory(layoutEngine):
             for name in ("GDEF", "GSUB", "GPOS"):
                 if name in otf:
                     table = otf[name].compile(otf)
-                    value = hb.Blob.create_for_array(table, HB.MEMORY_MODE_READONLY)
+                    value = hb.Blob.create_for_array(
+                        table, HB.MEMORY_MODE_READONLY)
                     ret[name] = value
-        except Exception:
+        except:
             # TODO: handle this in the UI
             import traceback
-
             print(traceback.format_exc(5))
             # discard tables from incompletely parsed feature text
             ret = dict()
     return ret, glyphOrder
-
 
 # harfbuzz
 
@@ -77,7 +74,6 @@ def _spitLayoutTable(face, tag, layoutTables):
     name = hb.tag_to_string(tag)
     return layoutTables.get(name)
 
-
 # TODO: what if the source font does not have .notdef, is there a
 # fallback gid?
 
@@ -87,7 +83,7 @@ class LayoutEngine(BaseObject):
     representationFactories = {
         "TruFont.layoutEngine.tables": dict(
             factory=_layoutEngineOTLTablesRepresentationFactory,
-            destructiveNotifications=("LayoutEngine._DestroyCachedTables"),
+            destructiveNotifications=("LayoutEngine._DestroyCachedTables")
         )
     }
 
@@ -119,10 +115,10 @@ class LayoutEngine(BaseObject):
             return
         ufo = self.font
         layoutTables, self._glyphOrder = self.getRepresentation(
-            "TruFont.layoutEngine.tables"
-        )
+            "TruFont.layoutEngine.tables")
 
-        face = hb.Face.create_for_tables(_spitLayoutTable, layoutTables, None, False)
+        face = hb.Face.create_for_tables(
+            _spitLayoutTable, layoutTables, None, False)
         font = hb.Font.create(face)
         face.upem = upem = ufo.info.unitsPerEm
         font.scale = (upem, upem)
@@ -159,24 +155,18 @@ class LayoutEngine(BaseObject):
     def beginSelfLayersObservation(self):
         layers = self.font.layers
         layers.addObserver(
-            observer=self,
-            methodName="_layerSetDefaultLayerWillChange",
-            notification="LayerSet.DefaultLayerWillChange",
-        )
+            observer=self, methodName="_layerSetDefaultLayerWillChange",
+            notification="LayerSet.DefaultLayerWillChange")
         layers.addObserver(
-            observer=self,
-            methodName="_layerSetDefaultLayerChanged",
-            notification="LayerSet.DefaultLayerChanged",
-        )
+            observer=self, methodName="_layerSetDefaultLayerChanged",
+            notification="LayerSet.DefaultLayerChanged")
 
     def endSelfLayersObservation(self):
         layers = self.font.layers
         layers.removeObserver(
-            observer=self, notification="LayerSet.DefaultLayerWillChange"
-        )
+            observer=self, notification="LayerSet.DefaultLayerWillChange")
         layers.removeObserver(
-            observer=self, notification="LayerSet.DefaultLayerChanged"
-        )
+            observer=self, notification="LayerSet.DefaultLayerChanged")
 
     def _layerSetDefaultLayerWillChange(self, notification):
         self.endSelfLayerObservation()
@@ -190,20 +180,18 @@ class LayoutEngine(BaseObject):
     def beginSelfLayerObservation(self):
         layer = self.font.layers.defaultLayer
         layer.addObserver(
-            observer=self,
-            methodName="_layerGlyphNameChanged",
-            notification="Layer.GlyphNameChanged",
-        )
+            observer=self, methodName="_layerGlyphNameChanged",
+            notification="Layer.GlyphNameChanged")
         layer.addObserver(
-            observer=self,
-            methodName="_layerGlyphUnicodesChanged",
-            notification="Layer.GlyphUnicodesChanged",
-        )
+            observer=self, methodName="_layerGlyphUnicodesChanged",
+            notification="Layer.GlyphUnicodesChanged")
 
     def endSelfLayerObservation(self):
         layer = self.font.layers.defaultLayer
-        layer.removeObserver(observer=self, notification="Layer.GlyphNameChanged")
-        layer.removeObserver(observer=self, notification="Layer.GlyphUnicodesChanged")
+        layer.removeObserver(
+            observer=self, notification="Layer.GlyphNameChanged")
+        layer.removeObserver(
+            observer=self, notification="Layer.GlyphUnicodesChanged")
 
     def _layerGlyphNameChanged(self, notification):
         self._postNeedsUpdateNotification()
@@ -216,14 +204,13 @@ class LayoutEngine(BaseObject):
     def beginSelfFeaturesObservation(self):
         features = self.font.features
         features.addObserver(
-            observer=self,
-            methodName="_featuresTextChanged",
-            notification="Features.TextChanged",
-        )
+            observer=self, methodName="_featuresTextChanged",
+            notification="Features.TextChanged")
 
     def endSelfFeaturesObservation(self):
         features = self.font.features
-        features.removeObserver(observer=self, notification="Features.TextChanged")
+        features.removeObserver(
+            observer=self, notification="Features.TextChanged")
 
     def _featuresTextChanged(self, notification):
         self._destroyCachedTables()
@@ -286,24 +273,21 @@ class LayoutEngine(BaseObject):
         self._updateEngine()
         # XXX: for now we only list GSUB
         tags = self._hbFont.face.ot_layout.table_get_script_tags(
-            hb.tag_from_string("GSUB")
-        )
+            hb.tag_from_string("GSUB"))
         return [hb.tag_to_string(t) for t in tags]
 
     def getLanguageList(self):
         self._updateEngine()
         # XXX: for now we only list GSUB, default script
         tags = self._hbFont.face.ot_layout.script_get_language_tags(
-            hb.tag_from_string("GSUB"), 0
-        )
+            hb.tag_from_string("GSUB"), 0)
         return [hb.tag_to_string(t) for t in tags]
 
     def getFeatureList(self):
         self._updateEngine()
         # XXX: for now we only list GSUB, default script, default language
         tags = self._hbFont.face.ot_layout.language_get_feature_tags(
-            hb.tag_from_string("GSUB"), 0, 0xFFFF
-        )
+            hb.tag_from_string("GSUB"), 0, 0xFFFF)
         return [hb.tag_to_string(t) for t in tags]
 
     def getFeatureState(self, name):

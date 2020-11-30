@@ -1,12 +1,10 @@
 """
 UI-constrained point management methods.
 """
-import itertools
-
-from PyQt5.QtCore import QLineF, QPointF
-
 from trufont.tools import bezierMath
 from trufont.tools.UIMove_ng import UIMove
+from PyQt5.QtCore import QLineF, QPointF
+import itertools
 
 
 def _getOffCurveSiblingPoints(contour, point):
@@ -95,20 +93,13 @@ def moveUIPoint(contour, point, delta):
             if otherPoint.segmentType is None:
                 # keep the other offCurve inline
                 rotateUIPointAroundRefLine(
-                    point.x, point.y, onCurve.x, onCurve.y, otherPoint
-                )
+                    point.x, point.y, onCurve.x, onCurve.y, otherPoint)
             else:
                 # keep point in tangency with onCurve -> otherPoint segment,
                 # i.e. do an orthogonal projection
                 point.x, point.y, _ = bezierMath.lineProjection(
-                    onCurve.x,
-                    onCurve.y,
-                    otherPoint.x,
-                    otherPoint.y,
-                    point.x,
-                    point.y,
-                    False,
-                )
+                    onCurve.x, onCurve.y, otherPoint.x, otherPoint.y,
+                    point.x, point.y, False)
     else:
         # point is an onCurve. Move its offCurves along with it.
         index = contour.index(point)
@@ -123,11 +114,8 @@ def moveUIPoint(contour, point, delta):
                 # avoid double move for qCurve with single offCurve
                 if d > 0:
                     otherPt = contour.getPoint(index + 2 * d)
-                    if (
-                        otherPt.segmentType is not None
-                        and otherPt.segmentType != "move"
-                        and otherPt.selected
-                    ):
+                    if otherPt.segmentType is not None and \
+                            otherPt.segmentType != "move" and otherPt.selected:
                         continue
                 pt.move(delta)
                 maybeProjectUISmoothPointOffcurve(contour, index, delta)

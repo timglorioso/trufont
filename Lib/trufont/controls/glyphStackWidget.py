@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QWidget
 
 
 class GlyphStackWidget(QWidget):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._alignment = "left"
@@ -12,7 +13,7 @@ class GlyphStackWidget(QWidget):
         self._maxWidth = 300
 
         self._backgroundColor = Qt.transparent
-        self._glyphColor = QColor.fromRgbF(0, 0, 0, 0.15)
+        self._glyphColor = QColor.fromRgbF(0, 0, 0, .15)
 
         self._upm = 1000
         self._descender = -250

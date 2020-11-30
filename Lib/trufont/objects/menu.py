@@ -8,13 +8,13 @@ Windows that want to plug-in their own menu entries must implement
 """
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QAction, QApplication, QMenu, QMenuBar
-
 from trufont.tools import platformSpecific
 
 MAX_RECENT_FILES = 10
 
 
 class MenuBar(QMenuBar):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._spawnElementsHint = True
@@ -53,6 +53,7 @@ class MenuBar(QMenuBar):
 
 
 class Menu(QMenu):
+
     def shouldSpawnElements(self):
         parent = self.parent()
         if parent is not None:
@@ -63,6 +64,7 @@ class Menu(QMenu):
         if shortcut is None:
             shortcut = _shortcuts.get(text)
         text = _trMenuString(text)
+        action = None
         # cache lookup
         action = None
         for action_ in self.actions():
@@ -93,7 +95,7 @@ class Menu(QMenu):
             action.setEnabled(False)
 
 
-class Entries:
+class Entries(object):
     File = "&File"
     File_New = "&New…"
     File_Open = "&Open…"
@@ -131,10 +133,6 @@ class Entries:
     View_Layer_Up = "Layer &Up"
     View_Layer_Down = "Layer &Down"
     View_Show_Points = "Show P&oints"
-    View_Show_Coordinates = "Show &Coordinates"
-    View_Show_Coordinates_When_Selected = "Show Coordinates When &Selected"
-    View_Show_Point_Coordinates = "Always Show &Point Coordinates"
-    View_Show_Bezier_Handles_Coordinates = "Always Show &Bezier Handles Coordinates"
     View_Show_Metrics = "Show &Metrics"
     View_Show_Images = "Show &Images"
     View_Show_Guidelines = "Show &Guidelines"
@@ -174,6 +172,7 @@ _shortcuts = {
     Entries.File_Close: platformSpecific.closeKeySequence(),
     Entries.File_Export: "Ctrl+E",
     Entries.File_Exit: QKeySequence.Quit,
+
     Entries.Edit_Undo: QKeySequence.Undo,
     Entries.Edit_Redo: QKeySequence.Redo,
     Entries.Edit_Cut: QKeySequence.Cut,
@@ -183,6 +182,7 @@ _shortcuts = {
     Entries.Edit_Select_All: QKeySequence.SelectAll,
     Entries.Edit_Deselect: "Ctrl+D",
     Entries.Edit_Find: QKeySequence.Find,
+
     Entries.View_Zoom_In: QKeySequence.ZoomIn,
     Entries.View_Zoom_Out: QKeySequence.ZoomOut,
     Entries.View_Reset_Zoom: "Ctrl+0",
@@ -195,9 +195,11 @@ _shortcuts = {
     Entries.View_Show_Points: "Ctrl+Shift+N",
     Entries.View_Show_Metrics: "Ctrl+Shift+M",
     Entries.View_Show_Guidelines: "Ctrl+Shift+G",
+
     Entries.Font_Font_Info: "Ctrl+Alt+I",
     Entries.Font_Font_Features: "Ctrl+Alt+F",
     Entries.Font_Add_Glyphs: "Ctrl+G",
+
     Entries.Window_Minimize: "Ctrl+M",
     Entries.Window_Groups: "Ctrl+Alt+G",
     Entries.Window_Kerning: "Ctrl+Alt+K",
@@ -256,10 +258,6 @@ def globalMenuBar():
     viewMenu.fetchAction(Entries.View_Layer_Down)
     viewMenu.addSeparator()
     viewMenu.fetchAction(Entries.View_Show_Points)
-    coordinatesSubmenu = viewMenu.fetchMenu(Entries.View_Show_Coordinates)
-    coordinatesSubmenu.fetchAction(Entries.View_Show_Coordinates_When_Selected)
-    coordinatesSubmenu.fetchAction(Entries.View_Show_Point_Coordinates)
-    coordinatesSubmenu.fetchAction(Entries.View_Show_Bezier_Handles_Coordinates)
     viewMenu.fetchAction(Entries.View_Show_Metrics)
     viewMenu.fetchAction(Entries.View_Show_Images)
     viewMenu.fetchAction(Entries.View_Show_Guidelines)

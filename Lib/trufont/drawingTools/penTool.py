@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QPainterPath
 from PyQt5.QtWidgets import QApplication
-
 from trufont.drawingTools.baseTool import BaseTool
 from trufont.tools.uiMethods import moveUIPoint
 
@@ -121,8 +120,8 @@ class PenTool(BaseTool):
             contour.insertPoint(index, offCurve)
             self._stashedOffCurve = None
         else:
-            firstX = otherPt.x + round(0.35 * (pt.x - otherPt.x))
-            firstY = otherPt.y + round(0.35 * (pt.y - otherPt.y))
+            firstX = otherPt.x + round(.35 * (pt.x - otherPt.x))
+            firstY = otherPt.y + round(.35 * (pt.y - otherPt.y))
             contour.insertPoint(index, pt.__class__((firstX, firstY)))
         # now flag pt as curve point
         pt.segmentType = "curve"
@@ -184,7 +183,8 @@ class PenTool(BaseTool):
                 point.segmentType = "line"
                 point.selected = True
                 point.smooth = False
-                candidate.postNotification(notification="Contour.SelectionChanged")
+                candidate.postNotification(
+                    notification="Contour.SelectionChanged")
                 candidate.dirty = True
                 self._targetContour = candidate
                 return
@@ -197,8 +197,7 @@ class PenTool(BaseTool):
             lastPoint.selected = False
             if event.modifiers() & Qt.ShiftModifier:
                 pos = self.clampToOrigin(
-                    self._origin, QPointF(lastPoint.x, lastPoint.y)
-                ).toPoint()
+                    self._origin, QPointF(lastPoint.x, lastPoint.y)).toPoint()
                 x, y = pos.x(), pos.y()
             if not lastPoint.segmentType:
                 contour.removePoint(lastPoint)
@@ -214,7 +213,8 @@ class PenTool(BaseTool):
         self._glyph.selected = False
         contour.addPoint((x, y), pointType)
         contour[-1].selected = True
-        contour.postNotification(notification="Contour.SelectionChanged")
+        contour.postNotification(
+            notification="Contour.SelectionChanged")
         self._targetContour = contour
 
     def mouseMoveEvent(self, event):
@@ -237,7 +237,8 @@ class PenTool(BaseTool):
             widget = self.parent()
             rect = QRectF(self._origin, event.localPos())
             widgetRect = widget.mapRectFromCanvas(rect)
-            if (widgetRect.bottomRight() - widgetRect.topLeft()).manhattanLength() < 10:
+            if (widgetRect.bottomRight() - widgetRect.topLeft(
+                    )).manhattanLength() < 10:
                 return
             # go
             onSmooth = not event.modifiers() & Qt.AltModifier
@@ -256,7 +257,8 @@ class PenTool(BaseTool):
             if contour.open:
                 contour.addPoint((pos.x(), pos.y()))
             contour[-1].selected = True
-            contour.postNotification(notification="Contour.SelectionChanged")
+            contour.postNotification(
+                notification="Contour.SelectionChanged")
             contour.releaseHeldNotifications()
         else:
             if pt.segmentType:
@@ -267,8 +269,7 @@ class PenTool(BaseTool):
                 onCurve = contour[0]
             if event.modifiers() & Qt.ShiftModifier:
                 pos = self.clampToOrigin(
-                    event.localPos(), QPointF(onCurve.x, onCurve.y)
-                ).toPoint()
+                    event.localPos(), QPointF(onCurve.x, onCurve.y)).toPoint()
             if self._shouldMoveOnCurve:
                 dx = pos.x() - pt.x
                 dy = pos.y() - pt.y

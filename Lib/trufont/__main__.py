@@ -1,10 +1,3 @@
-import os
-import sys
-
-from PyQt5.QtCore import QCommandLineParser, QLibraryInfo, QLocale, Qt, QTranslator
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication
-
 from defconQt import representationFactories as baseRepresentationFactories
 from trufont import __version__, representationFactories
 from trufont.objects import settings
@@ -13,17 +6,21 @@ from trufont.objects.extension import TExtension
 from trufont.resources import icons_db  # noqa
 from trufont.tools import errorReports, platformSpecific
 from trufont.windows.outputWindow import OutputWindow
+from PyQt5.QtCore import (
+    Qt, QCommandLineParser, QTranslator, QLocale, QLibraryInfo)
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QApplication
+import os
+import sys
 
 
 def main():
     global app
-
     # register representation factories
     baseRepresentationFactories.registerAllFactories()
     representationFactories.registerAllFactories()
     if hasattr(Qt, "AA_EnableHighDpiScaling"):
         QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    platformSpecific.setAppName()
     # initialize the app
     app = Application(sys.argv)
     app.setOrganizationName("TruFont")
@@ -44,30 +41,25 @@ def main():
 
     # Qt's translation for itself. May not be installed.
     qtTranslator = QTranslator()
-    qtTranslator.load(
-        "qt_" + QLocale.system().name(),
-        QLibraryInfo.location(QLibraryInfo.TranslationsPath),
-    )
+    qtTranslator.load("qt_" + QLocale.system().name(),
+                      QLibraryInfo.location(QLibraryInfo.TranslationsPath))
     app.installTranslator(qtTranslator)
 
     appTranslator = QTranslator()
-    appTranslator.load(
-        "trufont_" + QLocale.system().name(),
-        os.path.dirname(os.path.realpath(__file__)) + "/resources",
-    )
+    appTranslator.load("trufont_" + QLocale.system().name(),
+                       os.path.dirname(os.path.realpath(__file__)) +
+                       "/resources")
     app.installTranslator(appTranslator)
 
     # parse options and open fonts
     parser = QCommandLineParser()
-    parser.setApplicationDescription(
-        QApplication.translate("Command-line parser", "The TruFont font editor.")
-    )
+    parser.setApplicationDescription(QApplication.translate(
+        "Command-line parser", "The TruFont font editor."))
     parser.addHelpOption()
     parser.addVersionOption()
-    parser.addPositionalArgument(
-        QApplication.translate("Command-line parser", "files"),
-        QApplication.translate("Command-line parser", "The UFO files to open."),
-    )
+    parser.addPositionalArgument(QApplication.translate(
+        "Command-line parser", "files"), QApplication.translate(
+        "Command-line parser", "The UFO files to open."))
     parser.process(app)
     # load menu
     if platformSpecific.useGlobalMenuBar():
@@ -85,8 +77,8 @@ def main():
                 extension.run()
         except Exception as e:
             msg = QApplication.translate(
-                "Extensions", f"The extension at {path} could not be run."
-            )
+                "Extensions", "The extension at {0} could not be run.".format(
+                    path))
             errorReports.showWarningException(e, msg)
             continue
         app.registerExtension(extension)

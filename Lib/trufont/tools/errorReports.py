@@ -1,7 +1,6 @@
+from PyQt5.QtWidgets import QMessageBox
 import sys
 import traceback
-
-from PyQt5.QtWidgets import QMessageBox
 
 _showMessages = True
 

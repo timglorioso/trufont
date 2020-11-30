@@ -1,8 +1,7 @@
-import os
-import sys
-
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QKeySequence
+import os
+import sys
 
 # -----------
 # File dialog
@@ -11,7 +10,6 @@ from PyQt5.QtGui import QFont, QKeySequence
 
 def treatPackageAsFile():
     return sys.platform == "darwin"
-
 
 # -----
 # Fonts
@@ -29,7 +27,6 @@ def UIFontOverride():
         font.setPointSize(9)
         return font
     return None
-
 
 # -------------
 # Key sequences
@@ -76,16 +73,10 @@ def isDeleteEvent(event):
     if modifiers & Qt.ShiftModifier or modifiers & Qt.AltModifier:
         modifiers_ = modifiers & ~Qt.ShiftModifier & ~Qt.AltModifier
         event_ = event.__class__(
-            event.type(),
-            event.key(),
-            modifiers_,
-            event.text(),
-            event.isAutoRepeat(),
-            event.count(),
-        )
+            event.type(), event.key(), modifiers_,
+            event.text(), event.isAutoRepeat(), event.count())
         return event_.matches(QKeySequence.Delete)
     return False
-
 
 # -------
 # Margins
@@ -99,7 +90,6 @@ def needsTighterMargins():
 def widen():
     return sys.platform == "win32"
 
-
 # --------
 # Menu bar
 # --------
@@ -110,10 +100,8 @@ def useGlobalMenuBar():
         return True
     elif sys.platform.startswith("linux"):
         env = os.environ
-        if (
-            env.get("XDG_CURRENT_DESKTOP") == "Unity"
-            and len(env.get("UBUNTU_MENUPROXY", "")) > 1
-        ):
+        if env.get("XDG_CURRENT_DESKTOP") == "Unity" and \
+                len(env.get("UBUNTU_MENUPROXY", "")) > 1:
             return True
     return False
 
@@ -124,22 +112,6 @@ def mergeOpenAndImport():
 
 def windowCommandsInMenu():
     return sys.platform == "darwin"
-
-
-def setAppName():
-    if sys.platform == "darwin":
-        try:
-            from Foundation import NSBundle
-
-            bundle = NSBundle.mainBundle()
-            if bundle:
-                app_info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
-                if app_info:
-                    app_info["CFBundleName"] = "TruFont"
-        except ImportError as e:
-            print(f"Could not set title: {e}")
-            pass
-
 
 # -----------
 # Main window
@@ -155,7 +127,6 @@ def appNameInTitle():
 def shouldSpawnDocument():
     return sys.platform != "darwin"
 
-
 # -----------
 # Message box
 # -----------
@@ -164,7 +135,6 @@ def shouldSpawnDocument():
 def showAppIconInDialog():
     return sys.platform == "darwin"
 
-
 # -----------
 # Rubber band
 # -----------
@@ -172,7 +142,6 @@ def showAppIconInDialog():
 
 def useBuiltinRubberBand():
     return sys.platform == "darwin"
-
 
 # ----------
 # Stylesheet

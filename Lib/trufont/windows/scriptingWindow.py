@@ -1,47 +1,27 @@
-import os
-import tokenize
-import traceback
-from keyword import kwlist
-
-from PyQt5.QtCore import QDir, QSettings, QSize, Qt, QUrl, pyqtSignal
-from PyQt5.QtGui import (
-    QColor,
-    QDesktopServices,
-    QKeySequence,
-    QTextCharFormat,
-    QTextCursor,
-)
-from PyQt5.QtWidgets import (
-    QApplication,
-    QComboBox,
-    QFileDialog,
-    QFileSystemModel,
-    QMainWindow,
-    QMenu,
-    QMessageBox,
-    QPushButton,
-    QShortcut,
-    QSplitter,
-    QStatusBar,
-    QTreeView,
-    QVBoxLayout,
-    QWidget,
-)
-
 from defconQt.controls.baseCodeEditor import (
-    BaseCodeEditor,
-    BaseCodeHighlighter,
-    GotoLineDialog,
-)
+    BaseCodeEditor, BaseCodeHighlighter, GotoLineDialog)
+from keyword import kwlist
+from PyQt5.QtCore import (
+    pyqtSignal, QDir, QSettings, QSize, Qt, QUrl)
+from PyQt5.QtGui import (
+    QColor, QDesktopServices, QKeySequence, QTextCharFormat, QTextCursor)
+from PyQt5.QtWidgets import (
+    QApplication, QComboBox, QFileDialog, QFileSystemModel, QMainWindow, QMenu,
+    QMessageBox, QPushButton, QShortcut, QSplitter, QStatusBar, QTreeView,
+    QWidget, QVBoxLayout)
 from trufont.controls.clickLabel import ClickLabel
 from trufont.controls.fileMessageBoxes import CloseMessageBox
 from trufont.objects import settings
 from trufont.objects.menu import Entries
 from trufont.tools import platformSpecific
 from trufont.windows.outputWindow import OutputEdit, OutputStream
+import os
+import tokenize
+import traceback
 
 
 class ScriptingWindow(QMainWindow):
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -67,8 +47,7 @@ class ScriptingWindow(QMainWindow):
         self.editor.modificationChanged.connect(self.setWindowModified)
         statusBar.setPosition(self.editor.textCursor())
         self.editor.cursorPositionChanged.connect(
-            lambda: statusBar.setPosition(self.sender().textCursor())
-        )
+            lambda: statusBar.setPosition(self.sender().textCursor()))
         statusBar.setIndent(self.editor.indent())
         self.editor.indentChanged.connect(statusBar.setIndent)
         statusBar.indentModified.connect(self.editor.setIndent)
@@ -162,7 +141,8 @@ class ScriptingWindow(QMainWindow):
             title = self.tr("Open File")
         else:
             title = self.tr("Save File")
-        dialog = QFileDialog(self, title, None, self.tr("Python file (*.py)"))
+        dialog = QFileDialog(
+            self, title, None, self.tr("Python file (*.py)"))
         if state:
             dialog.restoreState(state)
         dialog.setAcceptMode(mode)
@@ -193,7 +173,7 @@ class ScriptingWindow(QMainWindow):
         try:
             code = compile(script, "<string>", "exec")
             exec(code, global_vars)
-        except Exception:
+        except:
             traceback.print_exc()
         for stream in streams:
             stream.unregisterStream()
@@ -206,7 +186,7 @@ class ScriptingWindow(QMainWindow):
     def setWindowTitle(self, title):
         if platformSpecific.appNameInTitle():
             title += " – TruFont"
-        super().setWindowTitle(f"[*]{title}")
+        super().setWindowTitle("[*]{}".format(title))
 
     def sizeHint(self):
         return QSize(650, 700)
@@ -237,6 +217,7 @@ class ScriptingWindow(QMainWindow):
 
 
 class FileTreeView(QTreeView):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.doubleClickCallback = None
@@ -257,8 +238,8 @@ class FileTreeView(QTreeView):
                 path = model.rootPath()
             menu = QMenu(self)
             menu.addAction(
-                self.tr("Open In Explorer"), lambda: self._showInExplorer(path)
-            )
+                self.tr("Open In Explorer"),
+                lambda: self._showInExplorer(path))
             menu.exec_(event.globalPos())
 
     def mouseDoubleClickEvent(self, event):
@@ -279,14 +260,16 @@ class FileChooser(QWidget):
         self.explorerTree = FileTreeView(self)
         self.explorerTree.doubleClickCallback = self._fileOpened
         self.explorerModel = QFileSystemModel(self)
-        self.explorerModel.setFilter(QDir.AllDirs | QDir.Files | QDir.NoDotAndDotDot)
+        self.explorerModel.setFilter(
+            QDir.AllDirs | QDir.Files | QDir.NoDotAndDotDot)
         self.explorerModel.setNameFilters(["*.py"])
         self.explorerModel.setNameFilterDisables(False)
         self.explorerTree.setModel(self.explorerModel)
         for index in range(1, self.explorerModel.columnCount()):
             self.explorerTree.hideColumn(index)
         self.setCurrentFolder()
-        self.folderBox.currentIndexChanged[int].connect(self.updateCurrentFolder)
+        self.folderBox.currentIndexChanged[int].connect(
+            self.updateCurrentFolder)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.folderBox)
@@ -323,11 +306,8 @@ class FileChooser(QWidget):
         if index < self.folderBox.count() - 1:
             return
         path = QFileDialog.getExistingDirectory(
-            self,
-            self.tr("Choose Directory"),
-            self.currentFolder(),
-            QFileDialog.ShowDirsOnly,
-        )
+            self, self.tr("Choose Directory"), self.currentFolder(),
+            QFileDialog.ShowDirsOnly)
         if path:
             QSettings().setValue("scripting/path", path)
             self.setCurrentFolder(path)
@@ -366,11 +346,9 @@ class PythonEditor(BaseCodeEditor):
             ok = cursor.movePosition(QTextCursor.NextCharacter)
             if ok:
                 cursor.movePosition(
-                    QTextCursor.PreviousCharacter, QTextCursor.KeepAnchor, 2
-                )
-                combo = [
-                    "{}{}".format(chr(k), v) for k, v in self.autocomplete.items() if v
-                ]
+                    QTextCursor.PreviousCharacter, QTextCursor.KeepAnchor, 2)
+                combo = ["{}{}".format(chr(
+                    k), v) for k, v in self.autocomplete.items() if v]
                 if not cursor.selectedText() in combo:
                     ok = False
             if ok:
@@ -387,12 +365,9 @@ class PythonEditor(BaseCodeEditor):
             ok = cursor.movePosition(QTextCursor.PreviousCharacter)
             if ok:
                 ok = cursor.movePosition(
-                    QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 2
-                )
-                tags = [
-                    "{}{}".format(chr(k), v if v else chr(k))
-                    for k, v in self.autocomplete.items()
-                ]
+                    QTextCursor.NextCharacter, QTextCursor.KeepAnchor, 2)
+                tags = ["{}{}".format(chr(k), v if v else chr(
+                    k)) for k, v in self.autocomplete.items()]
                 if ok and cursor.selectedText() in tags:
                     cursor.removeSelectedText()
                     event.accept()
@@ -416,7 +391,8 @@ class PythonEditor(BaseCodeEditor):
             mimeData = event.mimeData()
             if mimeData.hasUrls():
                 urls = mimeData.urls()
-                paths = [url.toLocalFile() for url in urls if url.isLocalFile()]
+                paths = [
+                    url.toLocalFile() for url in urls if url.isLocalFile()]
                 text = ", ".join(paths)
                 if len(paths) > 1:
                     text = "[%s]" % text
@@ -428,12 +404,8 @@ class PythonEditor(BaseCodeEditor):
                 # up an empty event if we want to exit drag state.
                 mimeData = mimeData.__class__()
                 event = event.__class__(
-                    event.posF(),
-                    event.possibleActions(),
-                    mimeData,
-                    event.mouseButtons(),
-                    event.keyboardModifiers(),
-                )
+                    event.posF(), event.possibleActions(), mimeData,
+                    event.mouseButtons(), event.keyboardModifiers())
         super().dropEvent(event)
 
     def setPlainText(self, text):
@@ -442,6 +414,7 @@ class PythonEditor(BaseCodeEditor):
 
 
 class PythonHighlighter(BaseCodeHighlighter):
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -456,13 +429,13 @@ class PythonHighlighter(BaseCodeHighlighter):
 
         quotationTemplate = "{0}[^{0}\\\\]*(\\\\.[^{0}\\\\]*)*{0}"
         self.addRule(
-            "|".join(quotationTemplate.format(char) for char in ("'", '"')),
-            quotationFormat,
-        )
+            "|".join(quotationTemplate.format(char) for char in ("'", "\"")),
+            quotationFormat)
 
         classOrFnNameFormat = QTextCharFormat()
         classOrFnNameFormat.setForeground(QColor(96, 106, 161))
-        self.addRule("(?<=\\bclass\\s|def\\s\\b)\\s*(\\w+)", classOrFnNameFormat)
+        self.addRule(
+            "(?<=\\bclass\\s|def\\s\\b)\\s*(\\w+)", classOrFnNameFormat)
 
         keywordFormat = QTextCharFormat()
         keywordFormat.setForeground(QColor(45, 95, 235))
@@ -470,6 +443,7 @@ class PythonHighlighter(BaseCodeHighlighter):
 
 
 class ScriptingStatusBar(QStatusBar):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         if platformSpecific.needsTighterMargins():
@@ -518,12 +492,10 @@ class ScriptingStatusBar(QStatusBar):
         self.indentLabel.setText(text)
 
     def setPosition(self, textCursor):
-        blockNumber, blockPosition = (
-            textCursor.blockNumber(),
-            textCursor.positionInBlock(),
-        )
+        blockNumber, blockPosition = textCursor.blockNumber(
+            ), textCursor.positionInBlock()
         # TODO: display selection information?
-        self.positionLabel.setText("%d:%d" % (blockNumber + 1, blockPosition + 1))
+        self.positionLabel.setText("%d:%d" % (blockNumber+1, blockPosition+1))
 
 
 class IndentLabel(ClickLabel):
@@ -531,7 +503,10 @@ class IndentLabel(ClickLabel):
 
     def contextMenu(self):
         menu = QMenu(self)
-        menu.addAction(self.tr("2-Spaces"), lambda: self.indentModified.emit("  "))
-        menu.addAction(self.tr("4-Spaces"), lambda: self.indentModified.emit("    "))
-        menu.addAction(self.tr("Tab"), lambda: self.indentModified.emit("\t"))
+        menu.addAction(
+            self.tr("2-Spaces"), lambda: self.indentModified.emit("  "))
+        menu.addAction(
+            self.tr("4-Spaces"), lambda: self.indentModified.emit("    "))
+        menu.addAction(
+            self.tr("Tab"), lambda: self.indentModified.emit("\t"))
         return menu
