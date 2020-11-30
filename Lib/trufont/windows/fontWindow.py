@@ -1,13 +1,26 @@
+import os
+import pickle
+from collections import OrderedDict
+
+from fontTools.feaLib.error import FeatureLibError
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.svgLib import SVGPath
+from fontTools.ufoLib.glifLib import readGlyphFromString
 from PyQt5.QtCore import QEvent, QMimeData, QObject, QSize, QStandardPaths, Qt
 from PyQt5.QtGui import QColor, QKeySequence, QPainter, QPainterPath
 from PyQt5.QtWidgets import (
-    QApplication, QFileDialog, QHBoxLayout, QMessageBox, QShortcut,
-    QStackedWidget, QVBoxLayout, QWidget)
+    QApplication,
+    QFileDialog,
+    QHBoxLayout,
+    QMessageBox,
+    QShortcut,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
 from defconQt.controls.glyphCellView import GlyphCellView
 from defconQt.windows.baseWindows import BaseWindow
-from fontTools.feaLib.error import FeatureLibError
-from fontTools.svgLib import SVGPath
-from fontTools.pens.svgPathPen import SVGPathPen
 from trufont.controls.exportDialog import ExportDialog
 from trufont.controls.fileMessageBoxes import CloseMessageBox, ReloadMessageBox
 from trufont.controls.fontDialogs import AddGlyphsDialog, SortDialog
@@ -26,10 +39,6 @@ from trufont.windows.fontInfoWindow import FontInfoWindow
 from trufont.windows.groupsWindow import GroupsWindow
 from trufont.windows.kerningWindow import KerningWindow
 from trufont.windows.metricsWindow import MetricsWindow
-from ufoLib.glifLib import readGlyphFromString
-from collections import OrderedDict
-import os
-import pickle
 
 _path = QPainterPath()
 _path.moveTo(5, 8)
@@ -50,13 +59,16 @@ _path.closeSubpath()
 
 
 def _textForGlyphs(glyphs):
-    return "".join(
-        chr(glyph.unicode) if glyph.unicode is not None else
-        "/{} ".format(glyph.name) for glyph in glyphs)
+    names = []
+    for glyph in glyphs:
+        char = ""
+        if glyph.unicode and chr(glyph.unicode) != glyph.name:
+            char = " ({})".format(chr(glyph.unicode))
+        names.append(f"/{glyph.name}{char}")
+    return " ".join(names)
 
 
 class PageWidget(QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -72,8 +84,7 @@ class PageWidget(QWidget):
 
 
 class PreviewEventFilter(QObject):
-    filterKeyEvents = (
-        QEvent.ShortcutOverride, QEvent.KeyPress, QEvent.KeyRelease)
+    filterKeyEvents = (QEvent.ShortcutOverride, QEvent.KeyPress, QEvent.KeyRelease)
 
     def eventFilter(self, obj, event):
         if not obj.isWidgetType():
@@ -83,15 +94,13 @@ class PreviewEventFilter(QObject):
             self.parent()._setGlyphPreview(False)
         if event.type() in self.filterKeyEvents:
             if not event.isAutoRepeat() and event.key() == Qt.Key_Space:
-                self.parent()._setGlyphPreview(
-                    event.type() != QEvent.KeyRelease)
+                self.parent()._setGlyphPreview(event.type() != QEvent.KeyRelease)
                 event.accept()
                 return True
         return False
 
 
 class FontWindow(BaseWindow):
-
     def __init__(self, font, parent=None):
         super().__init__(parent)
         self._font = None
@@ -103,8 +112,7 @@ class FontWindow(BaseWindow):
         self._metricsWindow = None
 
         self.toolBar = ToolBar(self)
-        self.toolBar.setTools(
-            t() for t in QApplication.instance().drawingTools())
+        self.toolBar.setTools(t() for t in QApplication.instance().drawingTools())
 
         self.glyphCellView = GlyphCellView(self)
         self.glyphCellView.glyphActivated.connect(self.openGlyphTab)
@@ -124,8 +132,8 @@ class FontWindow(BaseWindow):
         self.stackWidget.addWidget(self.glyphCellView)
         self.tabWidget.currentTabChanged.connect(self._tabChanged)
         self.tabWidget.tabRemoved.connect(
-            lambda index: self.stackWidget.removeWidget(
-                self.stackWidget.widget(index)))
+            lambda index: self.stackWidget.removeWidget(self.stackWidget.widget(index))
+        )
         self.stackWidget.currentChanged.connect(self._widgetChanged)
 
         self.propertiesView = PropertiesView(font, self)
@@ -140,11 +148,14 @@ class FontWindow(BaseWindow):
 
         app = QApplication.instance()
         app.dispatcher.addObserver(
-            self, "_drawingToolRegistered", "drawingToolRegistered")
+            self, "_drawingToolRegistered", "drawingToolRegistered"
+        )
         app.dispatcher.addObserver(
-            self, "_drawingToolUnregistered", "drawingToolUnregistered")
+            self, "_drawingToolUnregistered", "drawingToolUnregistered"
+        )
         app.dispatcher.addObserver(
-            self, "_glyphViewGlyphsChanged", "glyphViewGlyphsChanged")
+            self, "_glyphViewGlyphsChanged", "glyphViewGlyphsChanged"
+        )
 
         layout = QHBoxLayout(self)
         layout.addWidget(self.toolBar)
@@ -164,8 +175,7 @@ class FontWindow(BaseWindow):
             (platformSpecific.closeKeySequence(), self.closeGlyphTab),
             # XXX: does this really not warrant widget focus?
             (QKeySequence.Delete, self.delete),
-            ("Shift+" + QKeySequence(
-                QKeySequence.Delete).toString(), self.delete),
+            ("Shift+" + QKeySequence(QKeySequence.Delete).toString(), self.delete),
             ("Z", lambda: self.zoom(1)),
             ("X", lambda: self.zoom(-1)),
         ]
@@ -182,8 +192,7 @@ class FontWindow(BaseWindow):
         self.installEventFilter(PreviewEventFilter(self))
 
         self.readSettings()
-        self.propertiesView.activeLayerModified.connect(
-            self._activeLayerModified)
+        self.propertiesView.activeLayerModified.connect(self._activeLayerModified)
         self.statusBar.sizeChanged.connect(self.writeSettings)
 
     def readSettings(self):
@@ -232,7 +241,8 @@ class FontWindow(BaseWindow):
         cut = editMenu.fetchAction(Entries.Edit_Cut, self.cut)
         copy = editMenu.fetchAction(Entries.Edit_Copy, self.copy)
         copyComponent = editMenu.fetchAction(
-            Entries.Edit_Copy_As_Component, self.copyAsComponent)
+            Entries.Edit_Copy_As_Component, self.copyAsComponent
+        )
         paste = editMenu.fetchAction(Entries.Edit_Paste, self.paste)
         self._clipboardActions = (cut, copy, copyComponent, paste)
         editMenu.fetchAction(Entries.Edit_Select_All, self.selectAll)
@@ -246,20 +256,18 @@ class FontWindow(BaseWindow):
         viewMenu.fetchAction(Entries.View_Zoom_Out, lambda: self.zoom(-1))
         viewMenu.fetchAction(Entries.View_Reset_Zoom, self.resetZoom)
         viewMenu.addSeparator()
-        viewMenu.fetchAction(
-            Entries.View_Next_Tab, lambda: self.tabOffset(1))
-        viewMenu.fetchAction(
-            Entries.View_Previous_Tab, lambda: self.tabOffset(-1))
-        viewMenu.fetchAction(
-            Entries.View_Next_Glyph, lambda: self.glyphOffset(1))
-        viewMenu.fetchAction(
-            Entries.View_Previous_Glyph, lambda: self.glyphOffset(-1))
-        viewMenu.fetchAction(
-            Entries.View_Layer_Up, lambda: self.layerOffset(-1))
-        viewMenu.fetchAction(
-            Entries.View_Layer_Down, lambda: self.layerOffset(1))
+        viewMenu.fetchAction(Entries.View_Next_Tab, lambda: self.tabOffset(1))
+        viewMenu.fetchAction(Entries.View_Previous_Tab, lambda: self.tabOffset(-1))
+        viewMenu.fetchAction(Entries.View_Next_Glyph, lambda: self.glyphOffset(1))
+        viewMenu.fetchAction(Entries.View_Previous_Glyph, lambda: self.glyphOffset(-1))
+        viewMenu.fetchAction(Entries.View_Layer_Up, lambda: self.layerOffset(-1))
+        viewMenu.fetchAction(Entries.View_Layer_Down, lambda: self.layerOffset(1))
         viewMenu.addSeparator()
         viewMenu.fetchAction(Entries.View_Show_Points)
+        coordinatesSubmenu = viewMenu.fetchMenu(Entries.View_Show_Coordinates)
+        coordinatesSubmenu.fetchAction(Entries.View_Show_Coordinates_When_Selected)
+        coordinatesSubmenu.fetchAction(Entries.View_Show_Point_Coordinates)
+        coordinatesSubmenu.fetchAction(Entries.View_Show_Bezier_Handles_Coordinates)
         viewMenu.fetchAction(Entries.View_Show_Metrics)
         viewMenu.fetchAction(Entries.View_Show_Images)
         viewMenu.fetchAction(Entries.View_Show_Guidelines)
@@ -313,10 +321,8 @@ class FontWindow(BaseWindow):
             return
         self._updateGlyphsFromGlyphOrder()
         font.addObserver(self, "_fontChanged", "Font.Changed")
-        font.addObserver(
-            self, "_glyphOrderChanged", "Font.GlyphOrderChanged")
-        font.addObserver(
-            self, "_sortDescriptorChanged", "Font.SortDescriptorChanged")
+        font.addObserver(self, "_glyphOrderChanged", "Font.GlyphOrderChanged")
+        font.addObserver(self, "_sortDescriptorChanged", "Font.SortDescriptorChanged")
 
     def fontTitle(self):
         if self._font is None:
@@ -385,8 +391,7 @@ class FontWindow(BaseWindow):
             if isinstance(tool, toolClass):
                 self.toolBar.removeTool(tool)
                 return
-        raise ValueError(
-            "couldn't find tool to unregister: {}".format(toolClass))
+        raise ValueError(f"couldn't find tool to unregister: {toolClass}")
 
     def _glyphViewGlyphsChanged(self, notification):
         self._updateGlyphActions()
@@ -446,7 +451,7 @@ class FontWindow(BaseWindow):
         self._updateGlyphActions()
         # update slider
         if self.isGlyphTab():
-            lo, hi, unit = 0, 900000, " pt"
+            lo, hi, unit = 0, 900_000, " pt"
             widget = self.stackWidget.currentWidget()
             size = widget.pointSize()
         else:
@@ -489,7 +494,7 @@ class FontWindow(BaseWindow):
                 else:
                     text = ""
                 if count:
-                    text = self.tr("{0}(%n selected)".format(text), n=count)
+                    text = self.tr(f"{text}(%n selected)", n=count)
             else:
                 text = ""
             self.statusBar.setText(text)
@@ -545,8 +550,7 @@ class FontWindow(BaseWindow):
         if descriptors[0]["type"] == "glyphSet":
             glyphNames = descriptors[0]["glyphs"]
         else:
-            glyphNames = font.unicodeData.sortGlyphNames(
-                font.keys(), descriptors)
+            glyphNames = font.unicodeData.sortGlyphNames(font.keys(), descriptors)
         font.glyphOrder = glyphNames
 
     # ------------
@@ -564,21 +568,28 @@ class FontWindow(BaseWindow):
             self._font.save(path, ufoFormatVersion)
 
     def saveFileAs(self):
-        fileFormats = OrderedDict([
-            (self.tr("UFO Font version 3 {}").format("(*.ufo)"), 3),
-            (self.tr("UFO Font version 2 {}").format("(*.ufo)"), 2),
-        ])
+        fileFormats = OrderedDict(
+            [
+                (self.tr("UFO Font version 3 {}").format("(*.ufo)"), 3),
+                (self.tr("UFO Font version 2 {}").format("(*.ufo)"), 2),
+            ]
+        )
         state = settings.saveFileDialogState()
         path = self._font.path or self._font.binaryPath
         if path:
             directory = os.path.dirname(path)
         else:
-            directory = None if state else QStandardPaths.standardLocations(
-                QStandardPaths.DocumentsLocation)[0]
+            directory = (
+                None
+                if state
+                else QStandardPaths.standardLocations(QStandardPaths.DocumentsLocation)[
+                    0
+                ]
+            )
         # TODO: switch to directory dlg on platforms that need it
         dialog = QFileDialog(
-            self, self.tr("Save File"), directory,
-            ";;".join(fileFormats.keys()))
+            self, self.tr("Save File"), directory, ";;".join(fileFormats.keys())
+        )
         if state:
             dialog.restoreState(state)
         dialog.setAcceptMode(QFileDialog.AcceptSave)
@@ -622,18 +633,20 @@ class FontWindow(BaseWindow):
         params, ok = ExportDialog.getExportParameters(self, self._font)
         if not ok:
             return
-        baseName = params['baseName']
-        directory = params['exportDirectory']
-        compression = set(map(str.lower, params['compression']))
-        for format in map(str.lower, params['formats']):
-            fileName = "{}.{}".format(baseName, format)
+        baseName = params["baseName"]
+        directory = params["exportDirectory"]
+        compression = set(map(str.lower, params["compression"]))
+        for format in map(str.lower, params["formats"]):
+            fileName = f"{baseName}.{format}"
             path = os.path.join(directory, fileName)
             try:
                 self._font.export(path, format, compression=compression)
             except Exception as e:
-                msg = self.tr(
-                    "This font’s feature file contains an error."
-                    ) if isinstance(e, FeatureLibError) else None
+                msg = (
+                    self.tr("This font’s feature file contains an error.")
+                    if isinstance(e, FeatureLibError)
+                    else None
+                )
                 errorReports.showCriticalException(e, message=msg)
 
     # Edit
@@ -678,27 +691,26 @@ class FontWindow(BaseWindow):
         else:
             glyphs = self.glyphCellView.glyphs()
             packGlyphs = (
-                glyphs[index] for index in sorted(
-                    self.glyphCellView.selection()))
+                glyphs[index] for index in sorted(self.glyphCellView.selection())
+            )
 
         svgGlyphs = []
         pickled = []
         for i, glyph in enumerate(packGlyphs):
-            pickled.append(glyph.serialize(
-                blacklist=("name", "unicodes")
-            ))
+            pickled.append(glyph.serialize(blacklist=("name", "unicodes")))
 
             pen = SVGPathPen(font)
             glyph.draw(pen)
             col = i % 5
             row = i // 5
-            g = '<g transform="matrix(1,0,0,-1,%f,%f)"><path d="%s"/></g>' % (
-                    font.info.unitsPerEm * col, font.info.unitsPerEm * row,
-                    pen.getCommands())
+            g = '<g transform="matrix(1,0,0,-1,{:f},{:f})"><path d="{}"/></g>'.format(
+                font.info.unitsPerEm * col,
+                font.info.unitsPerEm * row,
+                pen.getCommands(),
+            )
             svgGlyphs.append(g)
 
-        mimeData.setData("application/x-trufont-glyph-data",
-                         pickle.dumps(pickled))
+        mimeData.setData("application/x-trufont-glyph-data", pickle.dumps(pickled))
 
         svg = """\
 <?xml version="1.0" standalone="no"?>
@@ -707,7 +719,9 @@ class FontWindow(BaseWindow):
 <svg version="1.0" xmlns="http://www.w3.org/2000/svg">
 %s
 </svg>
-""" % "\n".join(svgGlyphs)
+""" % "\n".join(
+            svgGlyphs
+        )
         mimeData.setData("image/svg+xml", svg.encode("utf-8"))
 
         clipboard.setMimeData(mimeData)
@@ -727,8 +741,7 @@ class FontWindow(BaseWindow):
                 pickled.append(componentGlyph.serialize())
             clipboard = QApplication.clipboard()
             mimeData = QMimeData()
-            mimeData.setData("application/x-trufont-glyph-data",
-                             pickle.dumps(pickled))
+            mimeData.setData("application/x-trufont-glyph-data", pickle.dumps(pickled))
             clipboard.setMimeData(mimeData)
 
     def paste(self):
@@ -742,8 +755,7 @@ class FontWindow(BaseWindow):
         clipboard = QApplication.clipboard()
         mimeData = clipboard.mimeData()
         if mimeData.hasFormat("application/x-trufont-glyph-data"):
-            data = pickle.loads(mimeData.data(
-                "application/x-trufont-glyph-data"))
+            data = pickle.loads(mimeData.data("application/x-trufont-glyph-data"))
             if len(data) == len(glyphs):
                 for pickled, glyph in zip(data, glyphs):
                     if isGlyphTab:
@@ -752,8 +764,11 @@ class FontWindow(BaseWindow):
                         # TODO: if we serialize selected state, we don't need
                         # to do this
                         pasteGlyph.selected = True
-                        if len(pasteGlyph) or len(pasteGlyph.components) or \
-                                len(pasteGlyph.anchors):
+                        if (
+                            len(pasteGlyph)
+                            or len(pasteGlyph.components)
+                            or len(pasteGlyph.anchors)
+                        ):
                             glyph.beginUndoGroup()
                             glyph.holdNotifications()
                             count = len(glyph)
@@ -777,9 +792,8 @@ class FontWindow(BaseWindow):
             if len(glyphs) == 1:
                 glyph = glyphs[0]
                 try:
-                    svgPath = SVGPath.fromstring(
-                        mimeData.data("image/svg+xml"))
-                except:
+                    svgPath = SVGPath.fromstring(mimeData.data("image/svg+xml"))
+                except Exception:
                     pass
                 else:
                     glyph.beginUndoGroup()
@@ -794,13 +808,12 @@ class FontWindow(BaseWindow):
                 otherGlyph = glyph.__class__()
                 text = mimeData.text()
                 try:
-                    readGlyphFromString(
-                        text, otherGlyph, otherGlyph.getPointPen())
-                except:
+                    readGlyphFromString(text, otherGlyph, otherGlyph.getPointPen())
+                except Exception:
                     try:
                         svgPath = SVGPath.fromstring(text)
                         svgPath.draw(otherGlyph.getPen())
-                    except:
+                    except Exception:
                         return
                 glyph.beginUndoGroup()
                 if not isGlyphTab:
@@ -879,6 +892,7 @@ class FontWindow(BaseWindow):
             widget = self.stackWidget.currentWidget()
             newScale = widget.scale() * pow(1.2, step)
             widget.zoom(newScale)
+            self.statusBar.setSize(widget.pointSize())
         else:
             value = self.statusBar.size()
             newValue = value + 10 * step
@@ -956,8 +970,7 @@ class FontWindow(BaseWindow):
 
     def fontFeatures(self):
         # TODO: see up here
-        if self._featuresWindow is not None and self._featuresWindow.isVisible(
-                ):
+        if self._featuresWindow is not None and self._featuresWindow.isVisible():
             self._featuresWindow.raise_()
         else:
             self._featuresWindow = FontFeaturesWindow(self._font, self)
@@ -965,8 +978,7 @@ class FontWindow(BaseWindow):
 
     def addGlyphs(self):
         glyphs = self.glyphCellView.glyphs()
-        newGlyphNames, params, ok = AddGlyphsDialog.getNewGlyphNames(
-            self, glyphs)
+        newGlyphNames, params, ok = AddGlyphsDialog.getNewGlyphNames(self, glyphs)
         if ok:
             sortFont = params.pop("sortFont")
             for name in newGlyphNames:
@@ -982,8 +994,7 @@ class FontWindow(BaseWindow):
                 self._font.sortDescriptor = self._font.sortDescriptor
 
     def sortGlyphs(self):
-        sortDescriptor, ok = SortDialog.getDescriptor(
-            self, self._font.sortDescriptor)
+        sortDescriptor, ok = SortDialog.getDescriptor(self, self._font.sortDescriptor)
         if ok:
             self._font.sortDescriptor = sortDescriptor
 
@@ -1055,10 +1066,7 @@ class FontWindow(BaseWindow):
         else:
             currentGlyph = widget.lastSelectedGlyph()
         # disconnect eventual signal of previous glyph
-        objects = (
-            (self._undoAction, self.undo),
-            (self._redoAction, self.redo),
-        )
+        objects = ((self._undoAction, self.undo), (self._redoAction, self.redo))
         for action, slot in objects:
             try:
                 action.disconnect()
@@ -1082,20 +1090,23 @@ class FontWindow(BaseWindow):
     # helper
 
     def _proceedWithDeletion(self, erase=False):
-            if not self.glyphCellView.selection():
-                return
-            tr = self.tr("Delete") if erase else self.tr("Clear")
-            text = self.tr("Do you want to %s selected glyphs?") % tr.lower()
-            closeDialog = QMessageBox(
-                QMessageBox.Question, "",
-                self.tr("%s glyphs") % tr,
-                QMessageBox.Yes | QMessageBox.No, self)
-            closeDialog.setInformativeText(text)
-            closeDialog.setModal(True)
-            ret = closeDialog.exec_()
-            if ret == QMessageBox.Yes:
-                return True
-            return False
+        if not self.glyphCellView.selection():
+            return
+        tr = self.tr("Delete") if erase else self.tr("Clear")
+        text = self.tr("Do you want to %s selected glyphs?") % tr.lower()
+        closeDialog = QMessageBox(
+            QMessageBox.Question,
+            "",
+            self.tr("%s glyphs") % tr,
+            QMessageBox.Yes | QMessageBox.No,
+            self,
+        )
+        closeDialog.setInformativeText(text)
+        closeDialog.setModal(True)
+        ret = closeDialog.exec_()
+        if ret == QMessageBox.Yes:
+            return True
+        return False
 
     # ----------
     # Qt methods
@@ -1104,7 +1115,7 @@ class FontWindow(BaseWindow):
     def setWindowTitle(self, title):
         if platformSpecific.appNameInTitle():
             title += " – TruFont"
-        super().setWindowTitle("[*]{}".format(title))
+        super().setWindowTitle(f"[*]{title}")
 
     def sizeHint(self):
         return QSize(1270, 800)
@@ -1116,10 +1127,7 @@ class FontWindow(BaseWindow):
 
     def showEvent(self, event):
         app = QApplication.instance()
-        data = dict(
-            font=self._font,
-            window=self,
-        )
+        data = dict(font=self._font, window=self)
         app.postNotification("fontWindowWillOpen", data)
         super().showEvent(event)
         app.postNotification("fontWindowOpened", data)
@@ -1128,10 +1136,7 @@ class FontWindow(BaseWindow):
         ok = self.maybeSaveBeforeExit()
         if ok:
             app = QApplication.instance()
-            data = dict(
-                font=self._font,
-                window=self,
-            )
+            data = dict(font=self._font, window=self)
             app.postNotification("fontWindowWillClose", data)
             self._font.removeObserver(self, "Font.Changed")
             app = QApplication.instance()

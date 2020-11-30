@@ -1,21 +1,26 @@
 from PyQt5.QtCore import QEvent, QLocale, Qt
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtWidgets import (
-    QDialog, QDialogButtonBox, QGridLayout, QLabel, QLineEdit, QListWidget,
-    QRadioButton)
+    QDialog,
+    QDialogButtonBox,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QRadioButton,
+)
 
 
 class FindDialog(QDialog):
-    alphabetical = [
-        dict(type="alphabetical", allowPseudoUnicode=True)
-    ]
+    alphabetical = [dict(type="alphabetical", allowPseudoUnicode=True)]
 
     def __init__(self, currentGlyph, parent=None):
         super().__init__(parent)
         self.setWindowModality(Qt.WindowModal)
         self.setWindowTitle(self.tr("Find…"))
         self._sortedGlyphNames = currentGlyph.font.unicodeData.sortGlyphNames(
-            currentGlyph.layer.keys(), self.alphabetical)
+            currentGlyph.layer.keys(), self.alphabetical
+        )
 
         layout = QGridLayout(self)
         self.glyphLabel = QLabel(self.tr("Glyph:"), self)
@@ -32,21 +37,20 @@ class FindDialog(QDialog):
         self.glyphList = QListWidget(self)
         self.glyphList.itemDoubleClicked.connect(self.accept)
 
-        buttonBox = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
-        l = 0
-        layout.addWidget(self.glyphLabel, l, 0, 1, 2)
-        layout.addWidget(self.glyphEdit, l, 2, 1, 4)
-        l += 1
-        layout.addWidget(self.beginsWithBox, l, 0, 1, 3)
-        layout.addWidget(self.containsBox, l, 3, 1, 3)
-        l += 1
-        layout.addWidget(self.glyphList, l, 0, 1, 6)
-        l += 1
-        layout.addWidget(buttonBox, l, 0, 1, 6)
+        line = 0
+        layout.addWidget(self.glyphLabel, line, 0, 1, 2)
+        layout.addWidget(self.glyphEdit, line, 2, 1, 4)
+        line += 1
+        layout.addWidget(self.beginsWithBox, line, 0, 1, 3)
+        layout.addWidget(self.containsBox, line, 3, 1, 3)
+        line += 1
+        layout.addWidget(self.glyphList, line, 0, 1, 6)
+        line += 1
+        layout.addWidget(buttonBox, line, 0, 1, 6)
         self.setLayout(layout)
         self.updateGlyphList()
 
@@ -75,11 +79,17 @@ class FindDialog(QDialog):
         else:
             text = self.glyphEdit.text()
             if beginsWith:
-                glyphs = [glyphName for glyphName in self._sortedGlyphNames
-                          if glyphName and glyphName.startswith(text)]
+                glyphs = [
+                    glyphName
+                    for glyphName in self._sortedGlyphNames
+                    if glyphName and glyphName.startswith(text)
+                ]
             else:
-                glyphs = [glyphName for glyphName in self._sortedGlyphNames
-                          if glyphName and text in glyphName]
+                glyphs = [
+                    glyphName
+                    for glyphName in self._sortedGlyphNames
+                    if glyphName and text in glyphName
+                ]
             self.glyphList.addItems(glyphs)
         self.glyphList.setCurrentRow(0)
 
@@ -97,7 +107,6 @@ class FindDialog(QDialog):
 
 
 class AddComponentDialog(FindDialog):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setWindowTitle(self.tr("Add component…"))
@@ -106,7 +115,6 @@ class AddComponentDialog(FindDialog):
 
 
 class LayerActionsDialog(QDialog):
-
     def __init__(self, currentGlyph, parent=None):
         super().__init__(parent)
         self.setWindowModality(Qt.WindowModal)
@@ -123,26 +131,24 @@ class LayerActionsDialog(QDialog):
         copyBox.setChecked(True)
 
         self.layersList = QListWidget(self)
-        self.layersList.addItems(
-            layer.name for layer in self._workableLayers)
+        self.layersList.addItems(layer.name for layer in self._workableLayers)
         if self.layersList.count():
             self.layersList.setCurrentRow(0)
         self.layersList.itemDoubleClicked.connect(self.accept)
 
-        buttonBox = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
         layout = QGridLayout(self)
-        l = 0
-        layout.addWidget(copyBox, l, 0, 1, 2)
-        layout.addWidget(moveBox, l, 2, 1, 2)
-        layout.addWidget(swapBox, l, 4, 1, 2)
-        l += 1
-        layout.addWidget(self.layersList, l, 0, 1, 6)
-        l += 1
-        layout.addWidget(buttonBox, l, 0, 1, 6)
+        line = 0
+        layout.addWidget(copyBox, line, 0, 1, 2)
+        layout.addWidget(moveBox, line, 2, 1, 2)
+        layout.addWidget(swapBox, line, 4, 1, 2)
+        line += 1
+        layout.addWidget(self.layersList, line, 0, 1, 6)
+        line += 1
+        layout.addWidget(buttonBox, line, 0, 1, 6)
         self.setLayout(layout)
 
     @classmethod
@@ -164,7 +170,6 @@ class LayerActionsDialog(QDialog):
 
 
 class EditDialog(QDialog):
-
     def __init__(self, parent=None, item=None):
         super().__init__(parent)
         self.setWindowModality(Qt.WindowModal)
@@ -183,22 +188,21 @@ class EditDialog(QDialog):
         self.yEdit = QLineEdit(self)
         self.yEdit.setValidator(validator)
 
-        buttonBox = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
         layout = QGridLayout(self)
-        l = 0
-        layout.addWidget(nameLabel, l, 0)
-        layout.addWidget(self.nameEdit, l, 1, 1, 3)
-        l += 1
-        layout.addWidget(xLabel, l, 0)
-        layout.addWidget(self.xEdit, l, 1)
-        layout.addWidget(yLabel, l, 2)
-        layout.addWidget(self.yEdit, l, 3)
-        l += 1
-        layout.addWidget(buttonBox, l, 3)
+        line = 0
+        layout.addWidget(nameLabel, line, 0)
+        layout.addWidget(self.nameEdit, line, 1, 1, 3)
+        line += 1
+        layout.addWidget(xLabel, line, 0)
+        layout.addWidget(self.xEdit, line, 1)
+        layout.addWidget(yLabel, line, 2)
+        layout.addWidget(self.yEdit, line, 3)
+        line += 1
+        layout.addWidget(buttonBox, line, 3)
         self.setLayout(layout)
 
     @classmethod

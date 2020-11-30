@@ -1,11 +1,13 @@
+import sys
+import unittest
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
+
 from trufont.controls.nameTabWidget import NameTabWidget
 from trufont.objects.application import Application
 from trufont.objects.defcon import TFont
 from trufont.windows.fontWindow import FontWindow
-import sys
-import unittest
 
 
 class NameTabWidgetTest(unittest.TestCase):
@@ -38,6 +40,7 @@ class NameTabWidgetTest(unittest.TestCase):
 
 # TODO TabWidget
 
+
 class TabTestCase(unittest.TestCase):
 
     app = Application(sys.argv)
@@ -69,8 +72,7 @@ class TabTestCase(unittest.TestCase):
 
         attrEdit.setText("Typeface " + attrName)
         self.fontInfo.accept()
-        self.assertEqual(getattr(self.font.info, attrName),
-                         "Typeface " + attrName)
+        self.assertEqual(getattr(self.font.info, attrName), "Typeface " + attrName)
 
         attrEdit.setEnabled(False)
         self.fontInfo.accept()
@@ -85,8 +87,7 @@ class TabTestCase(unittest.TestCase):
 
         attrEdit.setPlainText("Typeface \n" + attrName)
         self.fontInfo.accept()
-        self.assertEqual(getattr(self.font.info, attrName),
-                         "Typeface \n" + attrName)
+        self.assertEqual(getattr(self.font.info, attrName), "Typeface \n" + attrName)
 
         attrEdit.setEnabled(False)
         self.fontInfo.accept()
@@ -279,17 +280,20 @@ class TabTestCase(unittest.TestCase):
         attrEdit.setText("123,0 456,1 789.11111112 789,11111113 790 791")
         self.fontInfo.accept()
         attr = getattr(self.font.info, attrName)
-        self.assertEqual(attr,
-                         [123, 456.1, 789.11111112, 789.11111113, 790, 791])
+        self.assertEqual(attr, [123, 456.1, 789.11111112, 789.11111113, 790, 791])
 
         attrEdit.setEnabled(False)
         self.fontInfo.accept()
         attr = getattr(self.font.info, attrName)
         # These are apparently always [], never None.
-        if attrName in ["postscriptBlueValues", "postscriptOtherBlues",
-                        "postscriptFamilyBlues",
-                        "postscriptFamilyOtherBlues",
-                        "postscriptStemSnapH", "postscriptStemSnapV"]:
+        if attrName in [
+            "postscriptBlueValues",
+            "postscriptOtherBlues",
+            "postscriptFamilyBlues",
+            "postscriptFamilyOtherBlues",
+            "postscriptStemSnapH",
+            "postscriptStemSnapV",
+        ]:
             self.assertEqual(attr, [])
         else:
             self.assertIsNone(attr)
@@ -323,7 +327,6 @@ class TabTestCase(unittest.TestCase):
 
 
 class GeneralTabTest(TabTestCase):
-
     def __init__(self, methodName):
         super().__init__(methodName)
 
@@ -371,7 +374,6 @@ class GeneralTabTest(TabTestCase):
 
 
 class LegalTabTest(TabTestCase):
-
     def __init__(self, methodName):
         super().__init__(methodName)
 
@@ -408,7 +410,6 @@ class LegalTabTest(TabTestCase):
 
 
 class OpenTypeTabTest(TabTestCase):
-
     def __init__(self, methodName):
         super().__init__(methodName)
 
@@ -499,7 +500,61 @@ class OpenTypeTabTest(TabTestCase):
 
     # TODO: Panose
 
-    # TODO: ulUnicodeRange, ulCodePageRange
+    # TODO: ulUnicodeRange
+
+    def test_ulCodePageRange(self):
+        codePageRangesEdit = self.tab.codePageRangesEdit
+        codePageRangesEdit.setEnabled(True)
+        model = codePageRangesEdit.model()
+        for index in range(model.rowCount()):
+            model.item(index).setCheckState(Qt.Checked)
+        self.fontInfo.accept()
+
+        codePageRanges = self.font.info.openTypeOS2CodePageRanges
+        self.assertEqual(
+            codePageRanges,
+            [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                29,
+                30,
+                31,
+                48,
+                49,
+                50,
+                51,
+                52,
+                53,
+                54,
+                55,
+                56,
+                57,
+                58,
+                59,
+                60,
+                61,
+                62,
+                63,
+            ],
+        )
+
+        codePageRangesEdit.setEnabled(False)
+        self.fontInfo.accept()
+
+        self.assertIsNone(self.font.info.openTypeOS2CodePageRanges)
 
     def test_sTypoAscender(self):
         self.checkInteger("openTypeOS2TypoAscender")
@@ -548,7 +603,6 @@ class OpenTypeTabTest(TabTestCase):
 
 
 class PostScriptTabTest(TabTestCase):
-
     def __init__(self, methodName):
         super().__init__(methodName)
 
